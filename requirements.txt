@@ -1,0 +1,6 @@
+requests
+Mastodon.py
+python-dotenv
+lxml
+tldextract
+sqlalchemy
