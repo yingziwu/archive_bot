@@ -4,6 +4,7 @@ import logging
 import os.path as path
 import re
 import time
+from json import JSONDecodeError
 
 import requests
 
@@ -18,7 +19,8 @@ def get_archive_url(url):
         archive.query()
         logging.info('archive_url: {}'.format(archive.recent_version_url))
         return archive.recent_version_url
-    except ValueError:
+    except ArchiveError:
+        time.sleep(2)
         try:
             archive.archive()
         except Exception as e:
@@ -38,6 +40,10 @@ def save_archive_url(url):
 
     logging.info('archive_url: {}'.format(archive.save_archive_url))
     return archive.save_archive_url
+
+
+class ArchiveError(ValueError):
+    pass
 
 
 class ArchiveOrg:
@@ -77,7 +83,7 @@ class ArchiveOrg:
                 timestamp = match.group()
                 return locatioin, timestamp
             else:
-                raise ValueError('Not found archive')
+                raise ArchiveError('Not found archive')
 
         first_query = path.join(self._baseUrl, 'web', '0', self.url)
         recent_query = path.join(self._baseUrl, 'web', '2', self.url)
@@ -88,7 +94,7 @@ class ArchiveOrg:
 
             return (self.first_version_url, self.first_version_timestamp), \
                    (self.recent_version_url, self.recent_version_timestamp)
-        except ValueError as e:
+        except ArchiveError as e:
             logging.info('Not found archive')
             raise e
 
@@ -104,7 +110,7 @@ class ArchiveOrg:
             """
             payload = {'url': self.url,
                        'capture_all': 'on'}
-            logging.info('Submit archive url post,')
+            logging.info('Submit archive url post.')
             resp = s.post(path.join(self._baseUrl, 'save', self.url),
                           headers={'Origin': self._baseUrl},
                           data=payload,
@@ -124,7 +130,7 @@ class ArchiveOrg:
             else:
                 logging.error('Extracting uuid failed! Something went wrong.')
                 logging.debug(html)
-                raise ValueError('Extracting uuid failed! Something went wrong.')
+                raise ArchiveError('Extracting uuid failed! Something went wrong.')
 
         def extract_archive_url(uuid):
             """
@@ -136,11 +142,16 @@ class ArchiveOrg:
             current_status = 'pending'
 
             while current_status != 'success':
+                time.sleep(2)
                 resp = s.get(status_url,
                              params={'_t': int(time.time())},
                              headers={'X-Requested-With': 'XMLHttpRequest'},
                              timeout=TIMEOUT)
-                rj = resp.json()
+                try:
+                    rj = resp.json()
+                except JSONDecodeError:
+                    time.sleep(2)
+                    continue
                 current_status = rj['status']
                 if current_status == 'success':
                     if rj.get('first_archive'):
@@ -159,16 +170,17 @@ class ArchiveOrg:
                     message = rj['message']
                     error_message = 'Archive failed! {}'.format(message)
                     logging.error(error_message)
-                    raise ValueError(error_message)
+                    raise ArchiveError(error_message)
 
         try:
             sresp = submit()
+            time.sleep(3)
             if sresp.ok:
                 event_uuid = extract_uuid(sresp.text)
                 self.save_first_archive, self.save_archive_url = extract_archive_url(event_uuid)
             else:
                 logging.error('Submit failed! ')
-                raise ValueError('Submit failed! ' + str(sresp))
+                raise ArchiveError('Submit failed! ' + str(sresp))
         except Exception as e:
             logging.error(e)
             raise e
@@ -179,7 +191,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Get URL archvie.')
     parser.add_argument('url', type=str, help='URL')
-    parser.add_argument('--resave',help='force resave webpage', action='store_true', default=False)
+    parser.add_argument('--resave', help='force resave webpage', action='store_true', default=False)
     args = parser.parse_args()
 
 

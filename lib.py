@@ -23,9 +23,10 @@ def domain_filter(url):
         rdomain = tldextract.extract(domain).registered_domain
         return rdomain
 
-    blacklist = {'archive.is', 'archive.ph', 'archive.st', 'perma.cc', 'megalodon.jp', 'archive.fo'
-                                                                                       'archive.org', 'archive.li',
-                 'archive.md', 'archive.vn', 'archive.today'}
+    archive_domain_list = {'archive.is', 'archive.ph', 'archive.st', 'perma.cc', 'megalodon.jp', 'archive.fo',
+                           'archive.org', 'archive.li', 'archive.md', 'archive.vn', 'archive.today'}
+
+    blacklist = archive_domain_list
     registered_domain = get_registered_domain(url)
     return registered_domain not in blacklist
 

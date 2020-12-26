@@ -28,8 +28,9 @@ def parse_urls(status, urls):
         if len(_a_class) == 0:
             urls.append(href)
         else:
-            a_class = _a_class[0]
-            if ('mention' not in a_class) and ('u-url' not in a_class):
+            a_class = set(_a_class[0].split(' '))
+            bclass = {'mention', 'u-url', 'hashtag'}
+            if len(bclass.intersection(a_class)) == 0:
                 urls.append(href)
 
     if status.get('in_reply_to_id'):
@@ -38,13 +39,14 @@ def parse_urls(status, urls):
             parent = m.status(parent_id)
         except MastodonNotFoundError:
             return urls
-
-        return parse_urls(parent, urls)
+        else:
+            return parse_urls(parent, urls)
     else:
-        return list(set(urls))
+        return urls
 
 
 def urls_prehook(urls):
+    urls = list(set(urls))
     urls = list(filter(domain_filter, urls))
     return urls
 
@@ -81,4 +83,16 @@ def post_reply_status(sid, status_text):
 
 
 if __name__ == '__main__':
-    print(get_notification())
+    import argparse
+
+
+    def run(sid):
+        urls = urls_prehook(parse_urls(m.status(sid), []))
+        for url in urls:
+            print(url)
+
+
+    parser = argparse.ArgumentParser(description='parse url from status.')
+    parser.add_argument('sid', help='status id', type=int)
+    args = parser.parse_args()
+    run(args.sid)

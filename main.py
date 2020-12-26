@@ -6,8 +6,9 @@ import archiveOrg
 import db
 import mstdn
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(filename)s %(message)s')
+logging.basicConfig(filename='archive_bot.log',
+                    level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(filename)s %(lineno)d %(message)s')
 
 
 def get_urls():
@@ -41,7 +42,7 @@ def run():
                 else:
                     archive_url = archiveOrg.get_archive_url(url)
                     db.insert_archive_url(url, archive_url)
-            except ValueError as e:
+            except archiveOrg.ArchiveError as e:
                 logging.error(e)
                 if url_dict.get('nid'):
                     db.insert_failed(nid, 0)
@@ -57,9 +58,12 @@ def run():
         toot_text = ''
         logging.debug('generate toot text: {}'.format(str(archive_map)))
         for au in archive_map:
-            toot_text = '\n' + toot_text + '\n'.join((au, archive_map[au])) + '\n'
+            toot_text = toot_text + '\n' + '\n'.join((au, archive_map[au])) + '\n'
 
         try:
+            if len(archive_map) == 0:
+                raise ValueError('Somewher error.')
+
             mstdn.post_reply_status(sid, toot_text)
             db.insert_finish(sid, archive_map, toot_text)
         except Exception as e:
