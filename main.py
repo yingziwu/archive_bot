@@ -62,10 +62,12 @@ def run():
 
         try:
             if len(archive_map) == 0:
+                toot_text = '存档出错了！'
+                mstdn.post_reply_status(sid, toot_text)
                 raise ValueError('Somewher error.')
-
-            mstdn.post_reply_status(sid, toot_text)
-            db.insert_finish(sid, archive_map, toot_text)
+            else:
+                mstdn.post_reply_status(sid, toot_text)
+                db.insert_finish(sid, archive_map, toot_text)
         except Exception as e:
             logging.error(e)
             if url_dict.get('nid'):
