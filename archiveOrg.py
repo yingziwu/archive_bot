@@ -19,11 +19,13 @@ def get_archive_url(url):
         archive.query()
         logging.info('archive_url: {}'.format(archive.recent_version_url))
         return archive.recent_version_url
-    except ArchiveError:
+    except ArchiveError as e:
+        logging.error(e)
         time.sleep(2)
         try:
             archive.archive()
         except Exception as e:
+            logging.error(e)
             raise e
 
         logging.info('archive_url: {}'.format(archive.save_archive_url))

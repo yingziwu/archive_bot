@@ -14,7 +14,7 @@ def get_location(url):
     if (resp.status_code >= 300) and (resp.status_code < 400):
         return True, resp, resp.headers['location']
     else:
-        return False, resp
+        return False, resp, None
 
 
 def domain_filter(url):
