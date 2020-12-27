@@ -25,6 +25,9 @@ def run():
         sid, url_dict = k, url_dicts[k]
         origin_urls, resave_flag = url_dict['origin'], url_dict['resave_flag']
 
+        if len(origin_urls) == 0:
+            continue
+
         if url_dict.get('nid'):
             nid = url_dict['nid']
 
